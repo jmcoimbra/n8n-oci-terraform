@@ -40,11 +40,18 @@ Internet
    +-- cloud-init fetch-secrets.sh --> [OCI Vault]
 ```
 
+## SO suportados
+
+macOS, Linux (Ubuntu, Fedora, Arch) e Windows (via WSL2 recomendado, ou nativo com Git Bash). Instruções completas em [docs/01-pre-requisitos.md](docs/01-pre-requisitos.md).
+
 ## Quickstart (caminho feliz)
 
 ```bash
-# 1. Pré-requisitos (doc 01)
-brew install terraform oci-cli
+# 1. Pré-requisitos (doc 01 tem comandos por SO)
+# macOS:   brew install terraform oci-cli
+# Linux:   apt/dnf/pacman install terraform + pip install oci-cli
+# Windows: wsl --install -d Ubuntu-22.04 e seguir o caminho Linux
+
 ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519
 
 # 2. Conta OCI + API key (doc 02)
