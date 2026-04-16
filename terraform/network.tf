@@ -35,11 +35,11 @@ resource "oci_core_security_list" "public" {
     stateless   = false
   }
 
-  # SSH
+  # SSH (restrito a allowed_ssh_cidr)
   ingress_security_rules {
-    source      = var.allowed_ssh_cidr
-    protocol    = "6"
-    stateless   = false
+    source    = var.allowed_ssh_cidr
+    protocol  = "6"
+    stateless = false
     tcp_options {
       min = 22
       max = 22
@@ -66,7 +66,16 @@ resource "oci_core_security_list" "public" {
     }
   }
 
-  # ICMP (ping + Path MTU Discovery)
+  # ICMP echo (ping) da VCN
+  ingress_security_rules {
+    source   = var.vcn_cidr
+    protocol = "1"
+    icmp_options {
+      type = 8
+    }
+  }
+
+  # ICMP Path MTU Discovery (fragmentation needed) de qualquer origem
   ingress_security_rules {
     source   = "0.0.0.0/0"
     protocol = "1"

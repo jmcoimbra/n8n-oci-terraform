@@ -41,8 +41,13 @@ variable "project_name" {
 }
 
 variable "compartment_ocid" {
-  description = "OCID do compartment onde os recursos serão criados. Use root compartment (tenancy_ocid) se não quiser criar um dedicado."
+  description = "OCID de um compartment DEDICADO (não use root/tenancy). A dynamic group terá acesso a TODOS os recursos deste compartment, por isso ele precisa ser isolado. Crie no console: Identity > Compartments > Create."
   type        = string
+
+  validation {
+    condition     = startswith(var.compartment_ocid, "ocid1.compartment.")
+    error_message = "compartment_ocid deve ser um OCID de compartment válido. Crie um compartment dedicado no console OCI (Identity > Compartments)."
+  }
 }
 
 # ===== Rede =====
@@ -60,9 +65,13 @@ variable "subnet_cidr" {
 }
 
 variable "allowed_ssh_cidr" {
-  description = "CIDR permitido para SSH (22). Restrinja ao seu IP: 'curl ifconfig.me'/32. Default 0.0.0.0/0 apenas para facilitar bootstrap."
+  description = "CIDR permitido para SSH (22). OBRIGATÓRIO restringir ao seu IP: 'curl ifconfig.me'/32. Nunca use 0.0.0.0/0."
   type        = string
-  default     = "0.0.0.0/0"
+
+  validation {
+    condition     = var.allowed_ssh_cidr != "0.0.0.0/0"
+    error_message = "allowed_ssh_cidr não pode ser 0.0.0.0/0. Restrinja ao seu IP residencial com /32."
+  }
 }
 
 # ===== Compute =====
@@ -94,6 +103,11 @@ variable "boot_volume_size_gb" {
 variable "ssh_public_key" {
   description = "Chave pública SSH completa (conteúdo do ~/.ssh/id_ed25519.pub)."
   type        = string
+
+  validation {
+    condition     = can(regex("^(ssh-ed25519|ssh-rsa|ecdsa-sha2-) ", var.ssh_public_key))
+    error_message = "ssh_public_key deve começar com ssh-ed25519, ssh-rsa ou ecdsa-sha2-."
+  }
 }
 
 # ===== Domínio / n8n =====
@@ -101,15 +115,53 @@ variable "ssh_public_key" {
 variable "domain" {
   description = "Domínio onde n8n será exposto. Ex: n8n.meusite.com.br. Você vai criar um A record apontando para a IP pública depois do apply."
   type        = string
+
+  validation {
+    condition     = can(regex("^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$", var.domain))
+    error_message = "domain deve ser um FQDN válido (ex: n8n.seusite.com.br)."
+  }
 }
 
 variable "acme_email" {
   description = "Email usado pelo Caddy para emitir certificado Let's Encrypt."
   type        = string
+
+  validation {
+    condition     = can(regex("^[^@]+@[^@]+\\.[^@]+$", var.acme_email))
+    error_message = "acme_email deve ser um email válido."
+  }
 }
 
 variable "n8n_basic_auth_user" {
   description = "Usuário básico opcional pra proteger a UI do n8n antes do primeiro login. Deixe vazio pra desabilitar."
   type        = string
   default     = "admin"
+}
+
+# ===== Imagens Docker (pinned) =====
+
+variable "n8n_image" {
+  description = "Imagem Docker do n8n pinada. Veja https://hub.docker.com/r/n8nio/n8n/tags e atualize deliberadamente."
+  type        = string
+  default     = "n8nio/n8n:1.77.0"
+}
+
+variable "postgres_image" {
+  description = "Imagem Docker do Postgres pinada."
+  type        = string
+  default     = "postgres:16.4-alpine"
+}
+
+variable "caddy_image" {
+  description = "Imagem Docker do Caddy pinada."
+  type        = string
+  default     = "caddy:2.8.4-alpine"
+}
+
+# ===== Backup =====
+
+variable "enable_offsite_backup" {
+  description = "Se true, cria bucket Object Storage e policy para backups offsite. Default true (Always Free: 20 GB grátis)."
+  type        = bool
+  default     = true
 }

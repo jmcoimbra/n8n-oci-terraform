@@ -7,6 +7,9 @@
 
 {$DOMAIN} {
     encode gzip
+    request_body {
+        max_size 100MB
+    }
     reverse_proxy n8n:5678 {
         flush_interval -1
     }

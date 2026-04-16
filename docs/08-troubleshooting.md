@@ -15,6 +15,24 @@ while ! terraform apply -auto-approve; do
 done
 ```
 
+## Erro: `compartment_ocid deve ser um OCID de compartment válido`
+
+**Causa:** Você colocou o tenancy OCID em vez de um compartment dedicado.
+
+**Solução:** Crie um compartment `n8n` (ver doc 02.2). A validação bloqueia root por segurança: a dynamic group dá acesso a secrets pra qualquer VM do compartment.
+
+## Erro: `allowed_ssh_cidr não pode ser 0.0.0.0/0`
+
+**Causa:** Validação bloqueando configuração insegura.
+
+**Solução:** Rode `curl ifconfig.me`, pegue seu IP público, coloque com `/32`:
+
+```hcl
+allowed_ssh_cidr = "177.123.45.67/32"
+```
+
+Se seu IP muda (internet residencial dinâmica), ou use Cloudflare Tunnel, ou atualize o tfvars quando precisar.
+
 ## Erro: `Service limit exceeded`
 
 **Causa:** Já tem recursos usando todo o Always Free no tenancy.
@@ -26,19 +44,26 @@ oci compute instance list --compartment-id $COMPARTMENT_OCID
 oci network vcn list --compartment-id $COMPARTMENT_OCID
 ```
 
-## Erro: `400-Authorization failed` no cloud-init
+## fetch-secrets.sh falha no boot
 
-**Causa:** Dynamic group policy ainda não propagou quando a VM boota.
+**Causa:** Policy do dynamic group ainda não propagou. O retry loop automático (20 × 30s = 10 min) absorve isso na maioria dos casos.
 
-**Solução:** Aguarde 2-3 minutos após o apply e reinicie o serviço:
-
+**Validação:**
 ```bash
 ssh ubuntu@<ip>
-sudo systemctl restart n8n.service
 sudo journalctl -u n8n.service -f
 ```
 
-Se persistir, valide a policy no console: Identity > Policies. Confirme que `Allow dynamic-group ...` está lá.
+Você deve ver `[fetch-secrets] tentativa X/20...` e eventualmente `[fetch-secrets] ok.`. Se passar de 10 min sem sucesso:
+
+```bash
+# Valide policy no console OCI ou CLI
+oci iam policy list --compartment-id $COMPARTMENT_OCID
+
+# Rerun manual
+sudo /opt/n8n/fetch-secrets.sh
+sudo systemctl restart n8n.service
+```
 
 ## Erro: Caddy não consegue emitir certificado
 
@@ -60,13 +85,14 @@ curl -I http://n8n.seusite.com.br
 
 **Causa típica 3:** Rate limit do Let's Encrypt (5 certs/semana/domínio).
 
-**Solução:** Aguarde 1h ou use staging. Edite `docker/Caddyfile`:
+**Solução:** Aguarde 1h ou use staging. Edite `/opt/n8n/Caddyfile` na VM:
 ```
 {
   email voce@exemplo.com
   acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
 }
 ```
+Depois `docker compose restart caddy`.
 
 ## n8n retorna 502 Bad Gateway
 
@@ -78,13 +104,19 @@ docker compose logs n8n --tail=50
 docker compose logs postgres --tail=50
 ```
 
-Espere o postgres health check passar (10-20s no primeiro boot).
+Espere o postgres health check passar (10-20s no primeiro boot). Depois o healthcheck do n8n (start_period 60s).
+
+## Webhook URL com `//` (barra dupla)
+
+**Causa:** Versão antiga do WEBHOOK_URL tinha trailing slash.
+
+**Solução:** Já corrigido em `WEBHOOK_URL: https://${domain}` (sem slash final). Se você upgraded de versão antiga, edite `/opt/n8n/docker-compose.yml` e `docker compose up -d n8n`.
 
 ## Workflows "perderam" credenciais após restore
 
 **Causa:** Encryption key mudou.
 
-**Solução:** Nunca rotacione `n8n-encryption-key`. Se realmente mudou, reimporte credenciais manualmente ou restaure o state completo.
+**Solução:** Nunca rotacione `n8n-encryption-key`. Se realmente mudou, reimporte credenciais manualmente.
 
 ## Conta OCI suspensa
 
@@ -94,11 +126,25 @@ Espere o postgres health check passar (10-20s no primeiro boot).
 
 ## VM reclamada por idle
 
-**Causa:** Oracle reciclou A1 Always Free por baixa CPU.
+**Causa:** Oracle reciclou A1 Always Free por baixa CPU (< 20% por 7 dias).
 
-**Solução:** 
-1. Valide keepalive: `cat /etc/cron.d/n8n-keepalive`
-2. Se foi reciclada: `terraform destroy && terraform apply`. Você perde o postgres (tenha backup).
+**Prevenção:** Cloud-init instala `/opt/n8n/keepalive.sh` que gera CPU + tráfego outbound a cada 5 min.
+
+**Validação:**
+```bash
+cat /etc/cron.d/n8n-keepalive
+# */5 * * * * root /opt/n8n/keepalive.sh ...
+```
+
+**Recuperação (se reciclou):**
+```bash
+terraform destroy
+# Restaurar do último backup offsite (se enable_offsite_backup=true):
+# 1. terraform apply (nova VM)
+# 2. oci os object list --bucket-name n8n-backups
+# 3. oci os object get ... --file /tmp/restore.dump.gz
+# 4. sudo /opt/n8n/restore.sh /tmp/restore.dump.gz
+```
 
 ## Como destruir tudo
 
@@ -107,4 +153,10 @@ cd terraform
 terraform destroy
 ```
 
-Confirmação: digite `yes`. Remove todos os recursos. Restaura tenancy ao estado original.
+Confirmação: digite `yes`. Remove todos os recursos. Restaura compartment ao estado original.
+
+**Nota:** Bucket de backups é excluído junto. Se quiser preservar backups, baixe antes:
+
+```bash
+oci os object bulk-download --bucket-name n8n-backups --download-dir ./backup-archive
+```

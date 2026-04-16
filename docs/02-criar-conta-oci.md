@@ -12,7 +12,22 @@
 - Use IP residencial brasileiro
 - Tente de novo no dia seguinte (24h de cooldown)
 
-## 2.2 Criar API key
+## 2.2 Criar compartment dedicado (OBRIGATÓRIO)
+
+Por que: a dynamic group usada por este setup dá acesso aos secrets do Vault para **qualquer instância do compartment**. Se você usar o root, qualquer VM futura terá acesso aos secrets do n8n. Isolamento = segurança.
+
+No console OCI:
+
+1. Menu lateral > **Identity & Security** > **Compartments**
+2. **Create Compartment**
+3. Name: `n8n`
+4. Parent Compartment: `<sua-tenancy>` (root)
+5. Description: "n8n self-hosted resources"
+6. Create
+
+Copie o OCID do compartment (começa com `ocid1.compartment.oc1..`). Vai entrar em `compartment_ocid` no tfvars.
+
+## 2.3 Criar API key
 
 Você precisa gerar uma chave para o Terraform se autenticar na OCI.
 
@@ -40,7 +55,7 @@ Ajuste permissões da chave:
 chmod 600 ~/.oci/oci_api_key.pem
 ```
 
-## 2.3 Coletar OCIDs necessários
+## 2.4 Coletar OCIDs necessários
 
 Anote os seguintes OCIDs (você vai colar no `terraform.tfvars`):
 
@@ -49,9 +64,9 @@ Anote os seguintes OCIDs (você vai colar no `terraform.tfvars`):
 | `tenancy_ocid` | User settings > Tenancy Details, OU bloco `[DEFAULT]` acima |
 | `user_ocid` | User settings, OU bloco `[DEFAULT]` |
 | `fingerprint` | API Keys (fingerprint da chave criada) |
-| `compartment_ocid` | Identity > Compartments. Use o root (= tenancy_ocid) para começar, ou crie um dedicado `n8n` |
+| `compartment_ocid` | Identity > Compartments > `n8n` (o dedicado que você criou no passo 2.2) |
 
-## 2.4 Validar autenticação (opcional mas recomendado)
+## 2.5 Validar autenticação (opcional mas recomendado)
 
 ```bash
 oci setup config   # segue o wizard, aponta pra ~/.oci/oci_api_key.pem

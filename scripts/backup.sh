@@ -1,31 +1,39 @@
 #!/usr/bin/env bash
-# Backup dos volumes do n8n (postgres + n8n_data) para tarball local.
-# Rode na VM: ssh ubuntu@<ip> 'bash -s' < backup.sh
-# Ou copie pra /opt/n8n/backup.sh e agende no cron.
+# Backup live do n8n (postgres + n8n_data). pg_dump é MVCC-safe, não precisa pausar.
+# Rodar na VM. Cloud-init já instala uma cópia em /opt/n8n/backup.sh com cron diário às 3h UTC.
+# Este arquivo existe como referência / override manual.
 
 set -euo pipefail
 
 BACKUP_DIR="${BACKUP_DIR:-/opt/n8n/backups}"
+BUCKET="${BACKUP_BUCKET:-}"
+RETENTION_DAYS="${RETENTION_DAYS:-14}"
 TS="$(date -u +%Y%m%dT%H%M%SZ)"
 mkdir -p "$BACKUP_DIR"
 
 cd /opt/n8n
 
-echo "[backup] pausando containers..."
-docker compose pause n8n postgres
-
-echo "[backup] exportando postgres..."
-docker compose exec -T postgres pg_dump -U n8n n8n | gzip > "$BACKUP_DIR/postgres-$TS.sql.gz"
+echo "[backup] pg_dump live (formato custom)..."
+docker compose exec -T postgres pg_dump -U n8n -Fc n8n > "$BACKUP_DIR/postgres-$TS.dump"
+gzip -f "$BACKUP_DIR/postgres-$TS.dump"
 
 echo "[backup] tarball de n8n_data..."
 docker run --rm -v n8n_n8n_data:/src:ro -v "$BACKUP_DIR":/dst alpine \
   tar czf "/dst/n8n-data-$TS.tar.gz" -C /src .
 
-echo "[backup] retomando..."
-docker compose unpause n8n postgres
+if [ -n "$BUCKET" ]; then
+  echo "[backup] upload para Object Storage: $BUCKET"
+  for f in "postgres-$TS.dump.gz" "n8n-data-$TS.tar.gz"; do
+    oci os object put --bucket-name "$BUCKET" --file "$BACKUP_DIR/$f" \
+      --auth instance_principal --force >/dev/null
+  done
+else
+  echo "[backup] BACKUP_BUCKET vazio, skip upload offsite."
+fi
 
-echo "[backup] feito: $BACKUP_DIR/*-$TS*"
+echo "[backup] retention: remove backups locais > $RETENTION_DAYS dias..."
+find "$BACKUP_DIR" -name "postgres-*.dump.gz" -mtime +$RETENTION_DAYS -delete
+find "$BACKUP_DIR" -name "n8n-data-*.tar.gz" -mtime +$RETENTION_DAYS -delete
+
+echo "[backup] feito:"
 ls -lh "$BACKUP_DIR" | tail -5
-
-# Opcional: upload para Object Storage
-# oci os object put --bucket-name n8n-backups --file "$BACKUP_DIR/postgres-$TS.sql.gz" --auth instance_principal

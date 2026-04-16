@@ -7,7 +7,7 @@ cd terraform
 terraform apply tfplan
 ```
 
-Leva 3-5 minutos. Ao final:
+Leva 5-8 minutos (vault + secrets são assíncronos, por isso subimos timeouts para 30m). Ao final:
 
 ```
 Outputs:
@@ -16,6 +16,8 @@ public_ip = "132.226.xxx.xxx"
 ssh_command = "ssh ubuntu@132.226.xxx.xxx"
 domain = "n8n.seusite.com.br"
 first_access_url = "https://n8n.seusite.com.br"
+get_basic_auth_password_command = "oci secrets secret-bundle get --secret-id ... | base64 -d"
+backup_bucket = "n8n-backups"
 ```
 
 **Se der erro `Out of host capacity`:** ARM A1 está esgotado em sa-saopaulo-1. Opções:
@@ -43,7 +45,7 @@ Deve retornar o IP. Pode levar até 30 minutos (cache de DNS). Na maioria das ve
 
 ## 5.3 Aguardar cloud-init
 
-A VM leva 3-5 minutos pra instalar Docker + OCI CLI + sobrir containers. SSH e acompanhe:
+A VM leva 5-10 minutos pra instalar Docker + OCI CLI + sobrir containers. O `fetch-secrets.sh` faz retry automático (até 10 min) para absorver propagação da policy. SSH e acompanhe:
 
 ```bash
 ssh ubuntu@$(terraform output -raw public_ip)
@@ -57,7 +59,7 @@ sudo systemctl status n8n.service
 
 # Containers
 docker ps
-# Espera: caddy, n8n, postgres todos "Up" e healthy
+# Espera: caddy, n8n, postgres todos "Up (healthy)"
 ```
 
 ## 5.4 Aguardar TLS (Let's Encrypt)
@@ -95,10 +97,8 @@ Vai pedir Basic Auth. Credenciais:
 - Senha: execute no laptop
 
 ```bash
-SECRET_OCID=$(terraform output -json secrets_ocids | jq -r .n8n_basic_auth_password)
-oci secrets secret-bundle get --secret-id "$SECRET_OCID" \
-  --query 'data."secret-bundle-content".content' --raw-output | base64 -d
-echo
+cd terraform
+terraform output -raw get_basic_auth_password_command | bash
 ```
 
 ## Próximo

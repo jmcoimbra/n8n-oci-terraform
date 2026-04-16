@@ -1,6 +1,5 @@
 # Terraform
 .terraform/
-.terraform.lock.hcl
 *.tfstate
 *.tfstate.*
 *.tfvars
@@ -12,6 +11,8 @@ override.tf.json
 *_override.tf
 *_override.tf.json
 
+# NÃO incluir .terraform.lock.hcl no ignore: lock file deve ser commitado pra reprodutibilidade.
+
 # OCI
 *.pem
 oci-cli-rc
@@ -19,6 +20,7 @@ oci-cli-rc
 
 # Docker
 docker/.env
+docker/secrets/
 
 # OS
 .DS_Store

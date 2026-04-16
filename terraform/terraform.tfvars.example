@@ -9,12 +9,15 @@ private_key_path = "~/.oci/oci_api_key.pem"
 region           = "sa-saopaulo-1"
 
 # ===== Projeto =====
-project_name     = "n8n"
-compartment_ocid = "ocid1.compartment.oc1..EXEMPLO"  # use tenancy_ocid se não criar compartment dedicado
+project_name = "n8n"
+
+# IMPORTANTE: crie um compartment dedicado no console OCI (Identity > Compartments > Create).
+# NÃO use o root/tenancy. A dynamic group terá acesso a TODOS os recursos do compartment.
+compartment_ocid = "ocid1.compartment.oc1..EXEMPLO"
 
 # ===== Rede =====
-# Restrinja SSH ao seu IP: curl ifconfig.me
-allowed_ssh_cidr = "0.0.0.0/0"
+# OBRIGATÓRIO restringir SSH ao seu IP: rode 'curl ifconfig.me' e cole com /32.
+allowed_ssh_cidr = "177.123.45.67/32"
 
 # ===== Compute =====
 # Defaults cabem no Always Free. Não altere se não souber o que está fazendo.
@@ -32,3 +35,12 @@ acme_email = "voce@exemplo.com"
 
 # ===== n8n =====
 n8n_basic_auth_user = "admin"
+
+# ===== Imagens Docker (pinned por segurança) =====
+# Atualize deliberadamente após testar compatibilidade.
+# n8n_image      = "n8nio/n8n:1.77.0"
+# postgres_image = "postgres:16.4-alpine"
+# caddy_image    = "caddy:2.8.4-alpine"
+
+# ===== Backup offsite (Object Storage Always Free: 20 GB) =====
+# enable_offsite_backup = true

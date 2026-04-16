@@ -1,9 +1,10 @@
 # Referência do stack final montado pelo cloud-init em /opt/n8n/docker-compose.yml.
-# Este arquivo existe para debug local / estudo. Em produção (na VM) o Terraform escreve direto.
+# Este arquivo existe para debug local e estudo. Em produção (na VM) o Terraform escreve direto.
+# Versões pinadas nas variáveis Terraform (n8n_image, postgres_image, caddy_image).
 
 services:
   caddy:
-    image: caddy:2-alpine
+    image: caddy:2.8.4-alpine
     restart: unless-stopped
     ports:
       - "80:80"
@@ -16,9 +17,19 @@ services:
       - n8n-net
     depends_on:
       - n8n
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:80"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   postgres:
-    image: postgres:16-alpine
+    image: postgres:16.4-alpine
     restart: unless-stopped
     environment:
       POSTGRES_USER: n8n
@@ -35,15 +46,20 @@ services:
       retries: 5
     networks:
       - n8n-net
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   n8n:
-    image: n8nio/n8n:latest
+    image: n8nio/n8n:1.77.0
     restart: unless-stopped
     environment:
       N8N_HOST: ${DOMAIN}
       N8N_PORT: 5678
       N8N_PROTOCOL: https
-      WEBHOOK_URL: https://${DOMAIN}/
+      WEBHOOK_URL: https://${DOMAIN}
       NODE_ENV: production
       GENERIC_TIMEZONE: America/Sao_Paulo
       TZ: America/Sao_Paulo
@@ -68,8 +84,19 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:5678/healthz || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     networks:
       - n8n-net
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
   n8n_data:
