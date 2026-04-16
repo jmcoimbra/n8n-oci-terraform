@@ -1,0 +1,34 @@
+# Copie este arquivo para terraform.tfvars e preencha.
+# terraform.tfvars está no .gitignore. NUNCA commite.
+
+# ===== OCI auth =====
+tenancy_ocid     = "ocid1.tenancy.oc1..EXEMPLO"
+user_ocid        = "ocid1.user.oc1..EXEMPLO"
+fingerprint      = "aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99"
+private_key_path = "~/.oci/oci_api_key.pem"
+region           = "sa-saopaulo-1"
+
+# ===== Projeto =====
+project_name     = "n8n"
+compartment_ocid = "ocid1.compartment.oc1..EXEMPLO"  # use tenancy_ocid se não criar compartment dedicado
+
+# ===== Rede =====
+# Restrinja SSH ao seu IP: curl ifconfig.me
+allowed_ssh_cidr = "0.0.0.0/0"
+
+# ===== Compute =====
+# Defaults cabem no Always Free. Não altere se não souber o que está fazendo.
+# instance_shape      = "VM.Standard.A1.Flex"
+# instance_ocpus      = 1
+# instance_memory_gb  = 6
+# boot_volume_size_gb = 50
+
+# Cole o conteúdo completo de ~/.ssh/id_ed25519.pub (ou id_rsa.pub)
+ssh_public_key = "ssh-ed25519 AAAA... seu-email@exemplo.com"
+
+# ===== Domínio =====
+domain     = "n8n.meusite.com.br"
+acme_email = "voce@exemplo.com"
+
+# ===== n8n =====
+n8n_basic_auth_user = "admin"
