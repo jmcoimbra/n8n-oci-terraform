@@ -21,7 +21,7 @@ user_ocid        = "ocid1.user.oc1..aaaa..."
 fingerprint      = "aa:bb:cc:dd:ee:ff:..."
 private_key_path = "~/.oci/oci_api_key.pem"
 region           = "sa-saopaulo-1"
-compartment_ocid = "ocid1.tenancy.oc1..aaaa..."  # mesmo que tenancy se usar root
+compartment_ocid = "ocid1.compartment.oc1..aaaa..."  # OCID do compartment 'n8n' (passo 02.2), NÃO a tenancy
 
 project_name = "n8n"
 
@@ -35,9 +35,11 @@ acme_email = "voce@exemplo.com"
 
 **Importante:** `terraform.tfvars` está no `.gitignore`. Nunca commite.
 
-## 3.3 Restringir SSH (recomendado)
+## 3.3 Restringir SSH (obrigatório)
 
-Abre o seu IP público:
+A validação bloqueia `0.0.0.0/0`. Você precisa de um CIDR específico.
+
+Pegue seu IP público:
 
 ```bash
 curl ifconfig.me
@@ -49,7 +51,10 @@ No `terraform.tfvars`:
 allowed_ssh_cidr = "177.123.45.67/32"
 ```
 
-Se o seu IP muda (casa com internet residencial), use `0.0.0.0/0` mesmo e conte com a segurança do SSH (chave obrigatória, sem senha). Em produção de verdade, use um bastion ou VPN.
+Se seu IP muda (internet residencial dinâmica):
+- **Opção A:** atualize o `terraform.tfvars` quando mudar e rode `terraform apply` (só o security rule é recriado, rápido)
+- **Opção B:** use Cloudflare Tunnel (grátis) pra acessar SSH sem expor porta 22 à internet
+- **Opção C:** use uma VPN com IP fixo (Tailscale tem tier gratuito)
 
 ## 3.4 Inicializar
 

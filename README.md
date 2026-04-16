@@ -142,6 +142,28 @@ Sobra espaço pra mais 3 VMs iguais se quiser expandir.
 - Fail2ban ativo
 - UFW + security list OCI (defense in depth)
 
+## Ajuda e comunidade
+
+Travou? Antes de pedir ajuda:
+
+1. Rode `./scripts/health-check.sh <seu-dominio>` para isolar se é DNS, TLS ou app
+2. Veja [docs/08-troubleshooting.md](docs/08-troubleshooting.md) (erros comuns com solução direta)
+3. SSH na VM e `sudo journalctl -u n8n.service -f` + `docker compose logs --tail=100`
+
+Se mesmo assim travar:
+
+- **Este repo:** abra uma issue em https://github.com/jmcoimbra/n8n-oci-terraform/issues com output dos logs, versão do terraform, SO e passo onde travou
+- **n8n (dúvidas de workflow):** https://community.n8n.io (comunidade oficial, respostas rápidas)
+- **OCI (dúvidas de conta, cobrança, suspensão):** https://cloudcustomerconnect.oracle.com (fórum oficial Oracle) ou ticket em https://support.oracle.com
+- **Terraform (erros de HCL, providers):** https://discuss.hashicorp.com/c/terraform-core
+
+## Aprendendo n8n depois do deploy
+
+- **Docs oficiais:** https://docs.n8n.io
+- **Templates prontos:** https://n8n.io/workflows (500+ workflows pra estudar)
+- **YouTube:** canal oficial do n8n tem tutoriais de 5-15 min por feature
+- **Ideias pra portfolio:** ver `docs/06-primeiro-acesso.md` seção 6.5
+
 ## Contribuindo
 
 Issues e PRs bem-vindos. Este repo é propositadamente pequeno e focado. Se quiser adicionar funcionalidades (ex: módulo pra observability, backup automático via Object Storage), mantenha opcional atrás de variável.

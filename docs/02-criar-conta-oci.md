@@ -66,7 +66,28 @@ Anote os seguintes OCIDs (você vai colar no `terraform.tfvars`):
 | `fingerprint` | API Keys (fingerprint da chave criada) |
 | `compartment_ocid` | Identity > Compartments > `n8n` (o dedicado que você criou no passo 2.2) |
 
-## 2.5 Validar autenticação (opcional mas recomendado)
+## 2.5 Criar budget alarm (safety net: R$ 0 garantido)
+
+Trava de segurança contra cobrança inesperada. Se qualquer coisa sair do Always Free, você recebe email antes de virar fatura.
+
+No console OCI:
+
+1. Menu lateral > **Billing & Cost Management** > **Budgets**
+2. **Create Budget**
+3. Name: `always-free-guard`
+4. Target Compartment: selecione o compartment `n8n` (não a tenancy)
+5. Monthly Budget Amount: `1` (USD)
+6. Alert Rule:
+   - Threshold: `50` (%)
+   - Type: **Actual Spend**
+   - Recipients: seu email
+7. Create
+
+Se algum recurso fora do Always Free for provisionado, você é avisado antes de passar de **US$ 0,50**. Na prática, como este setup fica 100% dentro do Always Free, o alarme nunca dispara.
+
+Para segurança extra, crie um segundo alarme em 90% (`Threshold: 90`) como backup.
+
+## 2.6 Validar autenticação (opcional mas recomendado)
 
 ```bash
 oci setup config   # segue o wizard, aponta pra ~/.oci/oci_api_key.pem
