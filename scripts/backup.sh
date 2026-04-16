@@ -32,8 +32,8 @@ else
 fi
 
 echo "[backup] retention: remove backups locais > $RETENTION_DAYS dias..."
-find "$BACKUP_DIR" -name "postgres-*.dump.gz" -mtime +$RETENTION_DAYS -delete
-find "$BACKUP_DIR" -name "n8n-data-*.tar.gz" -mtime +$RETENTION_DAYS -delete
+find "$BACKUP_DIR" -name "postgres-*.dump.gz" -mtime "+$RETENTION_DAYS" -delete
+find "$BACKUP_DIR" -name "n8n-data-*.tar.gz" -mtime "+$RETENTION_DAYS" -delete
 
 echo "[backup] feito:"
-ls -lh "$BACKUP_DIR" | tail -5
+find "$BACKUP_DIR" -maxdepth 1 -type f -printf "%TY-%Tm-%Td %TH:%TM  %s  %p\n" | sort | tail -5

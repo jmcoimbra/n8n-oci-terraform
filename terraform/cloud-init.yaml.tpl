@@ -243,8 +243,8 @@ write_files:
       fi
 
       echo "[backup] limpando backups locais > $RETENTION_DAYS dias..."
-      find "$BACKUP_DIR" -name "postgres-*.dump.gz" -mtime +$RETENTION_DAYS -delete
-      find "$BACKUP_DIR" -name "n8n-data-*.tar.gz" -mtime +$RETENTION_DAYS -delete
+      find "$BACKUP_DIR" -name "postgres-*.dump.gz" -mtime "+$RETENTION_DAYS" -delete
+      find "$BACKUP_DIR" -name "n8n-data-*.tar.gz" -mtime "+$RETENTION_DAYS" -delete
 
       echo "[backup] feito."
 

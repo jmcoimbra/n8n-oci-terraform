@@ -15,7 +15,7 @@ Stack completa para subir [n8n](https://n8n.io) em uma VM Oracle Cloud Infrastru
 - IP público reservado (não muda em reboot)
 - Firewall em duas camadas (security list + ufw)
 - Fail2ban pra SSH
-- Backups documentados (local + OCI Object Storage opcional)
+- Backup diário automático (postgres live + n8n_data) com upload offsite para Object Storage por default
 
 ## Arquitetura
 
